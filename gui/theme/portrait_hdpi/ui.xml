@@ -207,6 +207,7 @@
 		<variable name="listbox_settings_mr_height" value="672"/>
 		<variable name="listbox_romselect_mr_height" value="586"/>
 		<variable name="listbox_swapselect_mr_height" value="480"/>
+		<variable name="listbox_advanced_height" value="700"/>
 		<variable name="fastscroll_w" value="24"/>
 		<variable name="fastscroll_linew" value="2"/>
 		<variable name="fastscroll_rectw" value="24"/>
