@@ -1447,13 +1447,13 @@ bool TWPartition::Is_File_System_Writable(void) {
 
 bool TWPartition::Mount(bool Display_Error) {
 	int exfat_mounted = 0;
-	unsigned long flags = Mount_Flags;
 #ifdef TARGET_RECOVERY_IS_MULTIROM
     //perhaps redundant and we could use/change exfat_mounted,
     //but this should make merges easier
     //TODO: reconsider using exfat_mounted
 	int mounted = 0;
 #endif //TARGET_RECOVERY_IS_MULTIROM
+	unsigned int flags = Mount_Flags;
 
 	if (Is_Mounted()) {
 		return true;
