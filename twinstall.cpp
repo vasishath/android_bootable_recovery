@@ -336,41 +336,11 @@ int TWinstall_zip(const char* path, int* wipe_cache) {
 	if (strlen(path) < 9 || strncmp(path, "/sideload", 9) != 0) {
 		string digest_str;
 		string Full_Filename = path;
-		string digest_file = path;
-		string defmd5file = digest_file + ".md5sum";
-
-		if (TWFunc::Path_Exists(defmd5file)) {
-			digest_file += ".md5sum";
-		}
-		else {
-			digest_file += ".md5";
-		}
 
 		if (DataManager::GetIntValue("is_gui_mode")) gui_msg("check_for_digest=Checking for Digest file...");
-		if (!TWFunc::Path_Exists(digest_file)) {
-			if (DataManager::GetIntValue("is_gui_mode")) gui_msg("no_digest=Skipping Digest check: no Digest file found");
-		}
-		else {
-			if (TWFunc::read_file(digest_file, digest_str) != 0) {
-				LOGERR("Skipping MD5 check: MD5 file unreadable\n");
-			}
-			else {
-				twrpDigest *digest = new twrpMD5();
-				if (!twrpDigestDriver::stream_file_to_digest(Full_Filename, digest)) {
-					delete digest;
-					return INSTALL_CORRUPT;
-				}
-				string digest_check = digest->return_digest_string();
-				if (digest_str == digest_check) {
-					if (DataManager::GetIntValue("is_gui_mode")) gui_msg(Msg("digest_matched=Digest matched for '{1}'.")(path));
-				}
-				else {
+		if (!twrpDigestDriver::Check_File_Digest(Full_Filename)) {
 					LOGERR("Aborting zip install: Digest verification failed\n");
-					delete digest;
 					return INSTALL_CORRUPT;
-				}
-				delete digest;
-			}
 		}
 	}
 
@@ -378,7 +348,7 @@ int TWinstall_zip(const char* path, int* wipe_cache) {
 	DataManager::GetValue(TW_SIGNED_ZIP_VERIFY_VAR, zip_verify);
 #endif
 	if (DataManager::GetIntValue("is_gui_mode")) DataManager::SetProgress(0);
-	MemMapping map;	
+	MemMapping map;
 #ifdef USE_MINZIP
 	if (sysMapFile(path, &map) != 0) {
 #else
@@ -452,7 +422,7 @@ int TWinstall_zip(const char* path, int* wipe_cache) {
 				}
 				ret_val = Run_Update_Binary(path, &Zip, wipe_cache, UPDATE_BINARY_ZIP_TYPE);
 			}
-				
+
 		}
 	} else {
 		if (Zip.EntryExists(AB_OTA)) {
@@ -466,8 +436,8 @@ int TWinstall_zip(const char* path, int* wipe_cache) {
 						sleep(2);
 					}
 				printf("GUI was stopped. Running update-binary now!\n");
-				}			
-			ret_val = Run_Update_Binary(path, &Zip, wipe_cache, AB_OTA_ZIP_TYPE);			
+				}
+			ret_val = Run_Update_Binary(path, &Zip, wipe_cache, AB_OTA_ZIP_TYPE);
 		} else {
 			if (Zip.EntryExists("ui.xml")) {
 				LOGINFO("TWRP theme zip\n");
@@ -487,6 +457,6 @@ int TWinstall_zip(const char* path, int* wipe_cache) {
 	}
 #ifdef USE_MINZIP
 	sysReleaseMap(&map);
-#endif	
+#endif
 	return ret_val;
 }
