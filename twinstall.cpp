@@ -356,7 +356,7 @@ int TWinstall_zip(const char* path, int* wipe_cache) {
 		string Full_Filename = path;
 
 		if (DataManager::GetIntValue("is_gui_mode")) gui_msg("check_for_digest=Checking for Digest file...");
-		if (!twrpDigestDriver::Check_File_Digest(Full_Filename)) {
+		if (*path != '@' && !twrpDigestDriver::Check_File_Digest(Full_Filename)) {
 					LOGERR("Aborting zip install: Digest verification failed\n");
 					return INSTALL_CORRUPT;
 		}
