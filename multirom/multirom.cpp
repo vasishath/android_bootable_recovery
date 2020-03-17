@@ -908,6 +908,7 @@ bool MultiROM::changeMounts(std::string name, bool needs_vendor)
 	PartitionManager.Copy_And_Push_Context();
 
 	TWPartition *realdata, *data, *sys, *cache;
+#define vendor 0
 #ifdef MR_DEVICE_HAS_VENDOR_PARTITION
     TWPartition *vendor = nullptr;
 #endif
@@ -1004,11 +1005,12 @@ bool MultiROM::changeMounts(std::string name, bool needs_vendor)
 			data = TWPartition::makePartFromFstab("/data_t %s %s/data.sparse.img flags=imagemount\n", fs, base.c_str());
 		else
 			data = TWPartition::makePartFromFstab("/data_t %s %s/data flags=bindof=/realdata\n", fs, base.c_str());
-
+#ifdef MR_DEVICE_HAS_VENDOR_PARTITION
         if (needs_vendor && Paths_Exist(base, "/vendor.sparse.img"))
 			vendor = TWPartition::makePartFromFstab("/vendor %s %s/vendor.sparse.img flags=imagemount\n", fs, base.c_str());
 		else if (needs_vendor && Paths_Exist(base, "/vendor"))
 			vendor = TWPartition::makePartFromFstab("/vendor %s %s/vendor flags=bindof=/realdata\n", fs, base.c_str());
+        #endif
 	}
 	else if (!(M(type) & MASK_IMAGES))
 	{
@@ -2184,12 +2186,12 @@ bool MultiROM::createSparseImage(const std::string& base, const char *img)
 	// make sparse files and format it ext4
 	char cmd[256];
 
-    char* file_contexts = NULL;
+    const char* file_contexts = NULL;
 
     if (!access("/file_contexts", F_OK)) {
-        file_contexts = "/file_contexts";
+       file_contexts = "/file_contexts";
     } else {
-        file_contexts = "/plat_file_contexts";
+       file_contexts = "/plat_file_contexts";
     }
 
 	// make_ext4fs errors out if it has unknown path
