@@ -1455,6 +1455,7 @@ bool MultiROM::flashZip(std::string rom, std::string file)
 	if(!prepareZIP(file, &hacker, restore_script))  // may change file var
 		return false;
 
+	gui_print("Checking if vendor is needed...\n");
     needs_vendor = (hacker.getProcessFlags() & EDIFY_VENDOR);
 	// unblank here so we can see some progress (kinda optional)
 	blankTimer.resetTimerAndUnblank();
@@ -1693,6 +1694,7 @@ bool MultiROM::prepareZIP(std::string& file, EdifyHacker *hacker, bool& restore_
 		return false;
 	}
 
+    gui_print("File mapped");
 #ifdef USE_MINZIP
 	ZipArchive zip;
 	if (mzOpenZipArchive(map.addr, map.length, &zip) != 0)
@@ -1705,6 +1707,7 @@ bool MultiROM::prepareZIP(std::string& file, EdifyHacker *hacker, bool& restore_
 		goto exit;
 	}
 
+    gui_print("File opened");
 #ifdef USE_MINZIP
 	const ZipEntry *script_entry;
 	script_entry = mzFindZipEntry(&zip, MR_UPDATE_SCRIPT_NAME);
@@ -1739,6 +1742,7 @@ bool MultiROM::prepareZIP(std::string& file, EdifyHacker *hacker, bool& restore_
 		goto exit;
 	}
 
+    gui_print("data read");
 #ifdef USE_MINZIP
 	mzCloseZipArchive(&zip);
 	sysReleaseMap(&map);
@@ -1746,6 +1750,7 @@ bool MultiROM::prepareZIP(std::string& file, EdifyHacker *hacker, bool& restore_
     CloseArchive(zip);
 #endif
 
+    gui_print("File closed");
 	if(!hacker->loadBuffer(script_data, script_len))
 	{
 		gui_print("Failed to process updater-script!\n");
@@ -1756,8 +1761,10 @@ bool MultiROM::prepareZIP(std::string& file, EdifyHacker *hacker, bool& restore_
 	script_data = NULL;
 
 	hacker->saveState();
+    gui_print("File replacing offendings");
 	hacker->replaceOffendings();
 
+    gui_print("File write");
 	if(!hacker->writeToFile("/tmp/" MR_UPDATE_SCRIPT_NAME))
 		goto exit;
 
@@ -2167,7 +2174,7 @@ bool MultiROM::createSparseImage(const std::string& base, const char *img)
 {
 	gui_print("Creating %s.sparse.img...\n", img);
 
-	int max_size_MB = 0;
+	uint64_t max_size_MB = 0;
 	std::string path = "/"; path += img;
 	TWPartition *part = PartitionManager.Find_Partition_By_Path(path);
 	if (part) {
@@ -2198,9 +2205,9 @@ bool MultiROM::createSparseImage(const std::string& base, const char *img)
 		 !strcmp(img, "system") ||
 		 !strcmp(img, "vendor") ||
 		 !strcmp(img, "cache"))) {
-		snprintf(cmd, sizeof(cmd), "make_ext4fs -l %dM -a \"/%s\" -S %s \"%s/%s.sparse.img\"", max_size_MB, img, file_contexts, base.c_str(), img);
+		snprintf(cmd, sizeof(cmd), "make_ext4fs -l %luM -a \"/%s\" -S %s \"%s/%s.sparse.img\"", max_size_MB, img, file_contexts, base.c_str(), img);
 	} else {
-		snprintf(cmd, sizeof(cmd), "make_ext4fs -l %dM \"%s/%s.img\"", max_size_MB, base.c_str(), img);
+		snprintf(cmd, sizeof(cmd), "make_ext4fs -l %luM \"%s/%s.img\"", max_size_MB, base.c_str(), img);
 	}
 
 	LOGINFO("Creating sparse image with cmd: %s\n", cmd);
@@ -3479,7 +3486,9 @@ void MultiROM::executeCacheScripts()
 
 		if(type & MASK_ANDROID)
 		{
-			if(stat((path + SCRIPT_FILE_CACHE).c_str(), &info) < 0)
+            std::string cacheDir = TWFunc::get_cache_dir();
+            std::string orsFile = cacheDir + "/recovery/openrecoveryscript";
+			if(stat((orsFile).c_str(), &info) < 0)
 				continue;
 
 			if((time_t)info.st_mtime > script.mtime)
@@ -3848,6 +3857,7 @@ std::string MultiROM::Create_LoopDevice(const std::string& ImageFile)
 	int loop_num;
 	struct stat info;
 	struct loop_info64 lo_info;
+    unsigned long direct_io = 1;
 
 /*
  * Alternate method to truncating (see below)

@@ -175,6 +175,7 @@ int EdifyFunc::replaceOffendings(std::list<EdifyElement*> **parentList, std::lis
     }
     else if(m_name == "block_image_update")
     {
+        gui_print("block_image_update found\n");
         res |= OFF_BLOCK_UPDATES;
     }
     else if(m_name == "run_program")
@@ -221,6 +222,7 @@ int EdifyFunc::replaceOffendings(std::list<EdifyElement*> **parentList, std::lis
     }
     else if(m_name == "package_extract_file" && m_args.size() >= 2)
     {
+        gui_print("package_extract_file found\n");
         int st = 0;
 
 #ifndef MR_CUSTOM_FORBIDDEN_PARTITIONS
@@ -294,10 +296,13 @@ int EdifyFunc::replaceOffendings(std::list<EdifyElement*> **parentList, std::lis
 
     for(std::list<EdifyElement*>::iterator itr = m_args.begin(); itr != m_args.end(); ++itr)
     {
-        if((*itr)->getType() == EDF_FUNC)
+        if((*itr)->getType() == EDF_FUNC) {
+            gui_print("edify function found, recurse %s\n", m_name.c_str());
             res |= ((EdifyFunc*)(*itr))->replaceOffendings(parentList, lastNewlineRef);
+        }
         else if((*itr)->getType() == EDF_NEWLINE)
         {
+            gui_print("edify newline found in replaceoffendings\n");
             *parentList = &m_args;
             lastNewlineRef = itr;
         }
@@ -589,6 +594,7 @@ void EdifyHacker::applyOffendingMask(std::list<EdifyElement*>::iterator& itr, in
 
         if (true) {
             m_processFlags |= (EDIFY_BLOCK_UPDATES | EDIFY_CHANGED);
+            itr = m_elements.insert(++itr, new EdifyNewline());
             return;
         }
 
@@ -646,6 +652,7 @@ void EdifyHacker::replaceOffendings()
     {
         if((*itr)->getType() == EDF_NEWLINE)
         {
+            gui_print("edify newline found\n");
             applyOffendingMask(itr, mask);
             parent = &m_elements;
             lastNewline = itr;
@@ -656,6 +663,10 @@ void EdifyHacker::replaceOffendings()
             continue;
 
         mask |= ((EdifyFunc*)(*itr))->replaceOffendings(&parent, lastNewline);
+            /*applyOffendingMask(itr, mask);
+            parent = &m_elements;
+            lastNewline = itr;
+            mask = 0;*/
     }
 
     if(mask)

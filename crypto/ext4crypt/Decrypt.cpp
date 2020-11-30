@@ -30,6 +30,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+extern "C" {
+#include "log.h"
+}
 #ifndef HAVE_LIBKEYUTILS
 #include "key_control.h"
 #else
@@ -81,6 +84,8 @@ extern "C" {
 #include "HashPassword.h"
 
 #include <android-base/file.h>
+#undef printf
+#define printf INFO
 
 // Store main DE raw ref / policy
 extern std::string de_raw_ref;
@@ -170,6 +175,7 @@ bool Decrypt_DE() {
 		printf("e4crypt_init_user0 returned fail\n");
 		return false;
 	}
+    printf("decrypt_de finished");
 	return true;
 }
 
@@ -416,13 +422,14 @@ static void stop_keystore() {
  * the keystore is not always ready when TWRP boots */
 sp<IBinder> getKeystoreBinder() {
 	sp<IServiceManager> sm = defaultServiceManager();
+    //return NULL;
     return sm->getService(String16("android.security.keystore"));
 }
 
 sp<IBinder> getKeystoreBinderRetry() {
 	printf("Starting keystore...\n");
     property_set("ctl.start", "keystore");
-	int retry_count = 50;
+	int retry_count = 3;
 	sp<IBinder> binder = getKeystoreBinder();
 	while (binder == NULL && retry_count) {
 		printf("Waiting for keystore service... %i\n", retry_count--);
@@ -555,6 +562,7 @@ std::string unwrapSyntheticPasswordBlob(const std::string& spblob_path, const st
 #else
 	sp<IKeystoreService> service = interface_cast<IKeystoreService>(binder);
 #endif
+
 	if (service == NULL) {
 		printf("error: could not connect to keystore service\n");
 		return disk_decryption_secret_key;
@@ -1201,7 +1209,9 @@ int Get_Password_Type(const userid_t user_id, std::string& filename) {
 		printf("Synthetic password support not present in TWRP\n");
 		return -1;
 #endif
-	}
+	} else {
+        printf("spblob not present");
+    }
 	std::string path;
     if (user_id == 0) {
 		path = "/data/system/";

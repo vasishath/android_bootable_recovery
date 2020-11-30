@@ -291,18 +291,15 @@ int main(int argc, char **argv) {
 		}
 	}
 
-<<<<<<< HEAD
 #ifdef TARGET_RECOVERY_IS_MULTIROM
 #ifdef MR_NO_KEXEC
 	// if /data in encrypted, the previous call would have done nothing, so check after decryption again
 	MultiROM::nokexec_restore_primary_and_cleanup();
 #endif
 #endif //TARGET_RECOVERY_IS_MULTIROM
-=======
 	// Fixup the RTC clock on devices which require it
 	if (crash_counter == 0)
 		TWFunc::Fixup_Time_On_Boot();
->>>>>>> 19874f14... AB/Non AB Devices: updates for moving cache
 
 	// Read the settings file
 	TWFunc::Update_Log_File();
@@ -310,25 +307,16 @@ int main(int argc, char **argv) {
 	PageManager::LoadLanguage(DataManager::GetStrValue("tw_language"));
 	GUIConsole::Translate_Now();
 
-<<<<<<< HEAD
 #ifdef TARGET_RECOVERY_IS_MULTIROM
     //TODO: we're not using this atm, should we?
     ////gui_rotate(DataManager::GetIntValue(TW_ROTATION));
 #endif //TARGET_RECOVERY_IS_MULTIROM
 
-	// Fixup the RTC clock on devices which require it
-	if (crash_counter == 0)
-		TWFunc::Fixup_Time_On_Boot();
-
-	// Run any outstanding OpenRecoveryScript
-#ifndef TARGET_RECOVERY_IS_MULTIROM
-	if ((DataManager::GetIntValue(TW_IS_ENCRYPTED) == 0 || SkipDecryption) && (TWFunc::Path_Exists(SCRIPT_FILE_TMP) || TWFunc::Path_Exists(SCRIPT_FILE_CACHE))) {
-=======
 	// Run any outstanding OpenRecoveryScript
 	std::string cacheDir = TWFunc::get_cache_dir();
 	std::string orsFile = cacheDir + "/recovery/openrecoveryscript";
+#ifndef TARGET_RECOVERY_IS_MULTIROM
 	if ((DataManager::GetIntValue(TW_IS_ENCRYPTED) == 0 || SkipDecryption) && (TWFunc::Path_Exists(SCRIPT_FILE_TMP) || TWFunc::Path_Exists(orsFile))) {
->>>>>>> 19874f14... AB/Non AB Devices: updates for moving cache
 		OpenRecoveryScript::Run_OpenRecoveryScript();
 	}
 	if (DataManager::GetIntValue(TW_IS_ENCRYPTED) == 0)

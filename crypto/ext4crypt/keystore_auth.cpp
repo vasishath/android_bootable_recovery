@@ -41,6 +41,11 @@
 #define LOG_TAG "keystore_auth"
 #endif
 
+extern "C" {
+#include "log.h"
+}
+#undef printf
+#define printf INFO
 using namespace android;
 
 void create_error_file() {
