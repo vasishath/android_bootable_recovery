@@ -484,7 +484,7 @@ bool TWPartition::Process_Fstab_Line(const char *fstab_line, bool Display_Error,
 	} else if (Is_File_System(Fstab_File_System)) {
 		Find_Actual_Block_Device();
 		Setup_File_System(Display_Error);
-		if (Mount_Point == PartitionManager.Get_Android_Root_Path()) {
+		if (Mount_Point == "/system") {
 			Display_Name = "System";
 			Backup_Display_Name = Display_Name;
 			Storage_Name = Display_Name;
@@ -1659,7 +1659,7 @@ bool TWPartition::UnMount(bool Display_Error) {
 		int never_unmount_system;
 
 		DataManager::GetValue(TW_DONT_UNMOUNT_SYSTEM, never_unmount_system);
-		if (never_unmount_system == 1 && Mount_Point == PartitionManager.Get_Android_Root_Path())
+		if (never_unmount_system == 1 && Mount_Point == "/system")
 			return true; // Never unmount system if you're not supposed to unmount it
 
 		if (Is_Storage && MTP_Storage_ID > 0)
@@ -2818,7 +2818,7 @@ bool TWPartition::Restore_Tar(PartitionSettings *part_settings) {
 		ret = true;
 #ifdef HAVE_CAPABILITIES
 	// Restore capabilities to the run-as binary
-	if (Mount_Point == PartitionManager.Get_Android_Root_Path() && Mount(true) && TWFunc::Path_Exists("/system/bin/run-as")) {
+	if (Mount_Point == "/system" && Mount(true) && TWFunc::Path_Exists("/system/bin/run-as")) {
 		struct vfs_cap_data cap_data;
 		uint64_t capabilities = (1 << CAP_SETUID) | (1 << CAP_SETGID);
 
