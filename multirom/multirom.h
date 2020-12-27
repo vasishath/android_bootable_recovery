@@ -234,8 +234,8 @@ private:
 	static bool createDirsFromBase(const std::string& base);
 	static bool mountBaseImages(std::string base, std::string& dest);
 	static void umountBaseImages(const std::string& base);
-	static bool createFakeSystemImg();
-	static bool createFakeVendorImg(bool needs_vendor);
+	static bool createFakeSystemImg(std::string name);
+	static bool createFakeVendorImg(std::string name, bool needs_vendor);
 
 	static int system_args(const char *fmt, ...);
 	static void translateToRealdata(std::string& path);

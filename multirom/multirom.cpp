@@ -1052,6 +1052,7 @@ bool MultiROM::changeMounts(std::string name, bool needs_vendor)
 
 	PartitionManager.Update_System_Details();
 
+#if 0
 	if(!cache->Mount(true) || !sys->Mount(true) || !data->Mount(true) || (vendor != nullptr && !vendor->Mount(true)))
 	{
 		gui_print("Failed to mount fake partitions, canceling!\n");
@@ -1069,6 +1070,7 @@ bool MultiROM::changeMounts(std::string name, bool needs_vendor)
 		TWFunc::Toggle_MTP(mtp_was_enabled);
 		return false;
 	}
+#endif
 
 	PartitionManager.Output_Partition_Logging();
 
@@ -1332,10 +1334,12 @@ void MultiROM::restoreROMPath()
 	m_mount_rom_paths[0].clear();
 }
 
-bool MultiROM::createFakeSystemImg()
+bool MultiROM::createFakeSystemImg(std::string name)
 {
-	std::string sysimg = m_path;
-	translateToRealdata(sysimg);
+
+	std::string base = getRomsPath() + name;
+	normalizeROMPath(base);
+	translateToRealdata(base);
 
 	TWPartition *data = PartitionManager.Find_Partition_By_Path("/realdata");
 	TWPartition *sys = PartitionManager.Find_Original_Partition_By_Path("/system");
@@ -1350,16 +1354,9 @@ bool MultiROM::createFakeSystemImg()
 		size = sys->GetSizeTotal();
 	size = size/1024/1024 + 32;
 
-	if(!createImage(sysimg, "system", size))
-	{
-		LOGERR("Failed to create system.img!");
-		return false;
-	}
-
-	std::string loop_device = Create_LoopDevice(sysimg + "/system.img");
+	std::string loop_device = Create_LoopDevice(base + "/system.sparse.img");
 	if (loop_device.empty())
 	{
-		system_args("rm \"%s/system.img\"", sysimg.c_str());
 		LOGERR("Failed to setup loop device!\n");
 		return false;
 	}
@@ -1368,24 +1365,23 @@ bool MultiROM::createFakeSystemImg()
 		sys->Actual_Block_Device.c_str(), sys->Actual_Block_Device.c_str(), loop_device.c_str(), sys->Actual_Block_Device.c_str()) != 0)
 	{
 		Release_LoopDevice(loop_device, true);
-		system_args("rm -f \"%s/system.img\"", sysimg.c_str());
 		LOGERR("Failed to fake system device!\n");
 		return false;
 	}
 
-	system_args("rm \"%s/system.img\"", sysimg.c_str());
 	system_args("echo \"%s\" > /tmp/mrom_fakesyspart", sys->Actual_Block_Device.c_str());
 	return true;
 }
 
-bool MultiROM::createFakeVendorImg(bool needs_vendor)
+bool MultiROM::createFakeVendorImg(std::string name, bool needs_vendor)
 {
 
     if (!needs_vendor) {
         return true;
     }
-	std::string sysimg = m_path;
-	translateToRealdata(sysimg);
+	std::string base = getRomsPath() + name;
+	normalizeROMPath(base);
+	translateToRealdata(base);
 
 	TWPartition *data = PartitionManager.Find_Partition_By_Path("/realdata");
 	TWPartition *sys = PartitionManager.Find_Original_Partition_By_Path("/vendor");
@@ -1400,16 +1396,9 @@ bool MultiROM::createFakeVendorImg(bool needs_vendor)
 		size = sys->GetSizeTotal();
 	size = size/1024/1024 + 32;
 
-	if(!createImage(sysimg, "vendor", size))
-	{
-		LOGERR("Failed to create vendor.img!");
-		return false;
-	}
-
-	std::string loop_device = Create_LoopDevice(sysimg + "/vendor.img");
+	std::string loop_device = Create_LoopDevice(base + "/vendor.sparse.img");
 	if (loop_device.empty())
 	{
-		system_args("rm \"%s/vendor.img\"", sysimg.c_str());
 		LOGERR("Failed to setup loop device!\n");
 		return false;
 	}
@@ -1418,12 +1407,10 @@ bool MultiROM::createFakeVendorImg(bool needs_vendor)
 		sys->Actual_Block_Device.c_str(), sys->Actual_Block_Device.c_str(), loop_device.c_str(), sys->Actual_Block_Device.c_str()) != 0)
 	{
 		Release_LoopDevice(loop_device, true);
-		system_args("rm -f \"%s/vendor.img\"", sysimg.c_str());
 		LOGERR("Failed to fake vendor device!\n");
 		return false;
 	}
 
-	system_args("rm \"%s/vendor.img\"", sysimg.c_str());
 	system_args("echo \"%s\" > /tmp/mrom_fakevendorpart", sys->Actual_Block_Device.c_str());
 	return true;
 }
@@ -1437,7 +1424,10 @@ bool MultiROM::installFromFastbootImg(std::string rom, std::string file)
 
 	Command = "simg2img '" + file + "' '" + getRomsPath() + rom + "/system.sparse.img" + "'";
 	LOGINFO("Flash command: '%s'\n", Command.c_str());
-	TWFunc::Exec_Cmd(Command);
+	if (TWFunc::Exec_Cmd(Command)) {
+        Command = "cp '" + file + "' '" + getRomsPath() + rom + "/system.sparse.img" + "'";
+        TWFunc::Exec_Cmd(Command);
+    }
     gui_print("Image successfully installed\n");
 	return true;
 }
@@ -1486,21 +1476,17 @@ bool MultiROM::flashZip(std::string rom, std::string file)
 		goto exit;
 
 
-	if(hacker.getProcessFlags() & EDIFY_BLOCK_UPDATES)
-	{
 		gui_print("ZIP uses block updates\n");
-		if(!createFakeSystemImg()
+		if(!createFakeSystemImg(rom)
 #ifdef MR_DEVICE_HAS_VENDOR_PARTITION
-              ||  !createFakeVendorImg(needs_vendor)
+              ||  !createFakeVendorImg(rom, needs_vendor)
 #endif
           )
 			goto exit;
-	}
 
 	// unblank here is necessary; if we don't bring the screen back up and the zip has an AROMA
 	// Installer, it will take over the screen and buttons and we won't be able to manually wake the screen
 	blankTimer.resetTimerAndUnblank();
-    system_args("busybox mv /system/etc/selinux/plat_property_contexts /system/etc/selinux/plat_property_contexts.bak");
 
 	dp_keep_busy[0] = opendir("/cache");
 	dp_keep_busy[1] = opendir("/system");
@@ -1512,7 +1498,6 @@ bool MultiROM::flashZip(std::string rom, std::string file)
 	DataManager::SetValue(TW_SIGNED_ZIP_VERIFY_VAR, 0);
 	status = TWinstall_zip(file.c_str(), &wipe_cache);
 	DataManager::SetValue(TW_SIGNED_ZIP_VERIFY_VAR, verify_status);
-    system_args("busybox mv /system/etc/selinux/plat_property_contexts.bak /system/etc/selinux/plat_property_contexts");
 
 	if (dp_keep_busy[0]) closedir(dp_keep_busy[0]);
 	if (dp_keep_busy[1]) closedir(dp_keep_busy[1]);
@@ -1585,16 +1570,13 @@ bool MultiROM::flashORSZip(std::string file, int *wipe_cache)
 		return false;
 
     needs_vendor = (hacker.getProcessFlags() & EDIFY_VENDOR);
-	if(hacker.getProcessFlags() & EDIFY_BLOCK_UPDATES)
-	{
 		gui_print("ZIP uses block updates\n");
-		if(!createFakeSystemImg()
+		if(!createFakeSystemImg("")
 #ifdef MR_DEVICE_HAS_VENDOR_PARTITION
-           ||   !createFakeVendorImg(needs_vendor)
+           ||   !createFakeVendorImg("", needs_vendor)
 #endif
           )
 			return false;
-	}
 
 	blankTimer.resetTimerAndUnblank(); // same as above (about AROMA Installer)
 

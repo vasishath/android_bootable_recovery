@@ -108,7 +108,7 @@ int EdifyFunc::replaceOffendings(std::list<EdifyElement*> **parentList, std::lis
 {
     int res = 0;
 
-    if(m_name == "mount" || m_name == "unmount" || m_name == "format")
+    if(m_name == "format")
     {
         // we only care about certain partitions, disregard the rest (eg systemless root 'su')
         int found = 0;
@@ -587,7 +587,8 @@ void EdifyHacker::applyOffendingMask(std::list<EdifyElement*>::iterator& itr, in
         }
 
 
-        if (partition.empty()) {
+        if (true) {
+            m_processFlags |= (EDIFY_BLOCK_UPDATES | EDIFY_CHANGED);
             return;
         }
 
